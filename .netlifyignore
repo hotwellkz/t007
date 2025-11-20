@@ -1,0 +1,4 @@
+# Игнорируем node_modules при сканировании секретов
+node_modules/
+**/node_modules/
+
