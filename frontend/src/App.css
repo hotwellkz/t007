@@ -32,7 +32,8 @@
   gap: 1rem;
 }
 
-.tabs button {
+.tabs button,
+.tabs a {
   background: rgba(255, 255, 255, 0.2);
   border: 2px solid transparent;
   color: white;
@@ -41,13 +42,20 @@
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.3s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.tabs a:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .tabs button:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.tabs button.active {
+.tabs button.active,
+.tabs a.active {
   background: white;
   color: #667eea;
   border-color: white;

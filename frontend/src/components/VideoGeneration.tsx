@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import '../App.css'
 import { apiFetch, apiFetchJson, ApiError, resolveApiUrl } from '../lib/apiClient'
 import { useNotifications } from '../hooks/useNotifications'
 import { useToast } from '../hooks/useToast'
 import { ToastContainer } from './Toast'
+import { VideoJobsList } from './VideoJobsList'
 
 type Language = 'ru' | 'kk' | 'en'
 
@@ -133,52 +134,6 @@ const VideoGeneration: React.FC = () => {
   // Храним предыдущее состояние задач для отслеживания изменений статусов
   const previousJobsRef = useRef<Map<string, VideoJobStatus>>(new Map())
   
-  // Фильтрация и сортировка задач
-  const [filterStatus, setFilterStatus] = useState<VideoJobStatus | 'all'>('all')
-  const [sortBy, setSortBy] = useState<'date' | 'status'>('date')
-  const [searchQuery, setSearchQuery] = useState<string>('')
-  
-  // Фильтрованные и отсортированные задачи
-  const filteredAndSortedJobs = useMemo(() => {
-    let filtered = [...videoJobs]
-    
-    // Фильтр по статусу
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(job => job.status === filterStatus)
-    }
-    
-    // Поиск по названию или промпту
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(job => 
-        (job.videoTitle?.toLowerCase().includes(query)) ||
-        (job.prompt.toLowerCase().includes(query))
-      )
-    }
-    
-    // Сортировка
-    filtered.sort((a, b) => {
-      if (sortBy === 'date') {
-        return b.createdAt - a.createdAt // Новые сначала
-      } else {
-        // Сортировка по статусу: активные сначала, затем готовые, затем остальные
-        const statusOrder: Record<VideoJobStatus, number> = {
-          queued: 1,
-          sending: 2,
-          waiting_video: 3,
-          downloading: 4,
-          uploading: 5,
-          ready: 6,
-          uploaded: 7,
-          rejected: 8,
-          error: 9,
-        }
-        return statusOrder[a.status] - statusOrder[b.status]
-      }
-    })
-    
-    return filtered
-  }, [videoJobs, filterStatus, sortBy, searchQuery])
 
   useEffect(() => {
     fetchChannels()
@@ -904,35 +859,6 @@ const VideoGeneration: React.FC = () => {
     }
   }
 
-  const getStatusLabel = (status: VideoJobStatus): string => {
-    const labels: Record<VideoJobStatus, string> = {
-      queued: 'В очереди',
-      sending: 'Отправляем в Syntx...',
-      waiting_video: 'Ожидаем видео от Syntx...',
-      downloading: 'Скачиваем видео...',
-      ready: 'Готово',
-      uploading: 'Загружаем в Google Drive...',
-      uploaded: 'Загружено в Google Drive',
-      rejected: 'Отклонено',
-      error: 'Ошибка',
-    }
-    return labels[status] || status
-  }
-
-  const getStatusColor = (status: VideoJobStatus): string => {
-    const colors: Record<VideoJobStatus, string> = {
-      queued: '#a0aec0',
-      sending: '#667eea',
-      waiting_video: '#667eea',
-      downloading: '#667eea',
-      ready: '#48bb78',
-      uploading: '#ed8936',
-      uploaded: '#48bb78',
-      rejected: '#f56565',
-      error: '#f56565',
-    }
-    return colors[status] || '#a0aec0'
-  }
 
   return (
     <div className="card">
@@ -1660,138 +1586,16 @@ const VideoGeneration: React.FC = () => {
           </div>
 
           {/* Список задач */}
-          <div style={{ marginTop: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <h3 style={{ margin: 0 }}>Текущие и последние генерации ({activeJobsCount}/{maxActiveJobs} активных)</h3>
-              
-              {/* Фильтры и поиск */}
-              {videoJobs.length > 0 && (
-                <div className="filter-sort-controls">
-                  <input
-                    type="text"
-                    placeholder="🔍 Поиск по названию или промпту..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ flex: 1, minWidth: '200px' }}
-                  />
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as VideoJobStatus | 'all')}
-                  >
-                    <option value="all">Все статусы</option>
-                    <option value="ready">Готово</option>
-                    <option value="waiting_video">Ожидание</option>
-                    <option value="downloading">Скачивание</option>
-                    <option value="uploaded">Загружено</option>
-                    <option value="error">Ошибки</option>
-                  </select>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as 'date' | 'status')}
-                  >
-                    <option value="date">По дате</option>
-                    <option value="status">По статусу</option>
-                  </select>
-                </div>
-              )}
-            </div>
-            
-            {videoJobs.length === 0 ? (
-              <p style={{ color: '#718096', marginTop: '0.75rem' }}>Задачи ещё не создавались.</p>
-            ) : filteredAndSortedJobs.length === 0 ? (
-              <p style={{ color: '#718096', marginTop: '0.75rem' }}>Задачи не найдены по заданным фильтрам.</p>
-            ) : (
-              <div className="job-list">
-                {filteredAndSortedJobs.map((job) => {
-                  const isActive = ['queued', 'sending', 'waiting_video', 'downloading', 'uploading'].includes(job.status)
-                  const canApprove = job.status === 'ready'
-                  
-                  return (
-                    <div
-                      key={job.id}
-                      className={`job-card ${isActive ? 'job-card--active' : ''}`}
-                      data-job-id={job.id}
-                    >
-                      <div className="job-card__header">
-                        <div className="job-card__info">
-                          <h4>
-                            {job.videoTitle || job.prompt.substring(0, 60) + (job.prompt.length > 60 ? '...' : '')}
-                          </h4>
-                          {job.videoTitle && (
-                            <p className="job-card__prompt">
-                              {job.prompt.substring(0, 100) + (job.prompt.length > 100 ? '...' : '')}
-                            </p>
-                          )}
-                          <div className="job-card__status">
-                            <span
-                              className="job-card__status-dot"
-                              style={{ background: getStatusColor(job.status) }}
-                            />
-                            <span style={{ color: getStatusColor(job.status) }}>
-                              {getStatusLabel(job.status)}
-                            </span>
-                            {job.errorMessage && (
-                              <span className="job-card__error">
-                                {job.errorMessage}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="job-card__timestamp">
-                          {new Date(job.createdAt).toLocaleString('ru-RU')}
-                        </div>
-                      </div>
-
-                      {/* Превью видео для готовых задач */}
-                      {job.status === 'ready' && job.previewUrl && (
-                        <div className="job-card__preview">
-                          <video
-                            src={job.previewUrl}
-                            controls
-                            className="video-preview"
-                          />
-                        </div>
-                      )}
-
-                      {/* Действия для готовых задач */}
-                      {canApprove && (
-                        <div className="job-card__actions">
-                          <button
-                            className="button button-success"
-                            onClick={() => handleApproveJob(job.id, job.videoTitle)}
-                            disabled={loading || job.status === 'uploaded'}
-                          >
-                            ✅ Одобрить и отправить в Google Drive
-                          </button>
-                          <button
-                            className="button button-danger"
-                            onClick={() => handleRejectJob(job.id)}
-                            disabled={loading || rejectingJobId === job.id}
-                            title={rejectingJobId === job.id ? 'Отклонение...' : 'Отклонить видео'}
-                          >
-                            {rejectingJobId === job.id ? '⏳ Отклонение...' : '🗑 Отклонить'}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Ссылка на Google Drive для загруженных */}
-                      {job.status === 'uploaded' && job.webViewLink && (
-                        <div className="job-card__link">
-                          <a
-                            href={job.webViewLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Открыть в Google Drive
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+          <VideoJobsList
+            jobs={videoJobs}
+            activeJobsCount={activeJobsCount}
+            maxActiveJobs={maxActiveJobs}
+            loading={loading}
+            onApprove={handleApproveJob}
+            onReject={handleRejectJob}
+            rejectingJobId={rejectingJobId}
+            showChannelName={false}
+          />
 
         </div>
       )}
