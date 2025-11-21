@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import '../App.css'
 import { apiFetch, apiFetchJson, ApiError, resolveApiUrl } from '../lib/apiClient'
 import { useNotifications } from '../hooks/useNotifications'
@@ -138,7 +137,6 @@ const NotificationSettingsCollapsible: React.FC<{ notifications: ReturnType<type
 }
 
 const VideoGeneration: React.FC = () => {
-  const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
   const [channels, setChannels] = useState<Channel[]>([])
   const [channelsLoading, setChannelsLoading] = useState(false)
@@ -266,36 +264,23 @@ const VideoGeneration: React.FC = () => {
     }
   }
 
-  // Функция для навигации назад
-  const handleGoBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1)
+  // Функция для копирования названия ролика в буфер обмена
+  const handleCopyTitle = async () => {
+    const titleToCopy = videoTitle?.trim() || ''
+    
+    if (!titleToCopy) {
+      toast.info('Название пока пустое')
+      return
+    }
+
+    const success = await copyToClipboard(titleToCopy)
+    if (success) {
+      toast.success('Название ролика скопировано')
     } else {
-      // Если нет истории, переходим на главную
-      navigate('/')
+      toast.error('Не удалось скопировать. Скопируйте вручную.')
     }
   }
 
-  // Функция для перехода на главную с полным сбросом состояния
-  const handleGoHome = () => {
-    // Сбрасываем все состояние
-    setStep(1)
-    setSelectedChannel(null)
-    setSelectedIdea(null)
-    setTheme('')
-    setIdeas([])
-    setVeoPrompt('')
-    setVideoTitle('')
-    setError('')
-    setSuccess('')
-    // Очищаем localStorage
-    try {
-      localStorage.removeItem('veoPrompt')
-      localStorage.removeItem('videoTitle')
-    } catch {}
-    // Переходим на главную
-    navigate('/', { replace: true })
-  }
   
   // Храним предыдущее состояние задач для отслеживания изменений статусов
   const previousJobsRef = useRef<Map<string, VideoJobStatus>>(new Map())
@@ -1730,33 +1715,22 @@ const VideoGeneration: React.FC = () => {
             )}
           </div>
 
-          {/* Закреплённая панель действий для мобильных */}
-          <div className="mobile-actions-panel">
-            {/* Одна строка - 3 кнопки */}
-            <div className="mobile-actions-panel__row mobile-actions-panel__row--icons">
+          {/* Закреплённая панель с кнопками для мобильных */}
+          <div className="mobile-generate-button">
+            <div className="mobile-generate-button__container">
               <button
-                className="mobile-actions-panel__icon-button"
-                onClick={handleGoBack}
-                title="Назад"
+                className="button button-secondary mobile-generate-button__copy"
+                onClick={handleCopyTitle}
+                title="Скопировать название ролика"
               >
-                <span className="mobile-actions-panel__icon">⬅️</span>
-                <span className="mobile-actions-panel__label">Назад</span>
+                📋 Скопировать название
               </button>
               <button
-                className="mobile-actions-panel__icon-button"
-                onClick={handleCopyPrompt}
-                title="Скопировать промпт"
+                className="button mobile-generate-button__generate"
+                onClick={handleGenerateVideo}
+                disabled={loading || !veoPrompt.trim() || activeJobsCount >= maxActiveJobs}
               >
-                <span className="mobile-actions-panel__icon">📋</span>
-                <span className="mobile-actions-panel__label">Скопировать промпт</span>
-              </button>
-              <button
-                className="mobile-actions-panel__icon-button"
-                onClick={handleGoHome}
-                title="Главное"
-              >
-                <span className="mobile-actions-panel__icon">🏠</span>
-                <span className="mobile-actions-panel__label">Главное</span>
+                {loading ? '⏳ Создание задачи...' : '🎬 Сгенерировать видео'}
               </button>
             </div>
           </div>
