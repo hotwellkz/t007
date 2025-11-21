@@ -12,6 +12,7 @@ export type VideoJobStatus =
   | "uploaded"
   | "rejected"
   | "error"
+  | "syntax_timeout"
 
 export interface VideoJob {
   id: string

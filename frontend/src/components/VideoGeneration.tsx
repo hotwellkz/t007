@@ -54,6 +54,87 @@ interface VideoJob {
 
 type Step = 1 | 2 | 3
 
+// Компонент для collapsible настроек уведомлений
+const NotificationSettingsCollapsible: React.FC<{ notifications: ReturnType<typeof useNotifications> }> = ({ notifications }) => {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="notification-settings-collapsible">
+      <button
+        className="notification-settings-collapsible__header"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        <span>🔔 Настройки уведомлений</span>
+        <span className="notification-settings-collapsible__arrow">
+          {isOpen ? '▼' : '▶'}
+        </span>
+      </button>
+      {isOpen && (
+        <div className="notification-settings-collapsible__content">
+          <label className="notification-settings-collapsible__checkbox">
+            <input
+              type="checkbox"
+              checked={notifications.settings.soundEnabled}
+              onChange={(e) => {
+                notifications.setSoundEnabled(e.target.checked)
+              }}
+            />
+            <span>🔊 Звуковые уведомления</span>
+          </label>
+          <label className="notification-settings-collapsible__checkbox">
+            <input
+              type="checkbox"
+              checked={notifications.settings.browserEnabled}
+              onChange={async (e) => {
+                if (e.target.checked) {
+                  const granted = await notifications.setBrowserEnabled(true)
+                  if (!granted) {
+                    alert('Разрешение на уведомления не предоставлено. Проверьте настройки браузера.')
+                    e.target.checked = false
+                  }
+                } else {
+                  notifications.setBrowserEnabled(false)
+                }
+              }}
+            />
+            <span>
+              📱 Браузерные уведомления
+              {notifications.settings.browserEnabled && notifications.settings.permissionGranted && (
+                <span className="notification-settings-collapsible__status">✓ Включены</span>
+              )}
+              {notifications.settings.browserEnabled && !notifications.settings.permissionGranted && (
+                <span className="notification-settings-collapsible__status notification-settings-collapsible__status--error">⚠ Разрешение не предоставлено</span>
+              )}
+            </span>
+          </label>
+          <label className="notification-settings-collapsible__checkbox">
+            <input
+              type="checkbox"
+              checked={notifications.settings.pushEnabled}
+              onChange={async (e) => {
+                const success = await notifications.setPushEnabled(e.target.checked)
+                if (!success && e.target.checked) {
+                  e.target.checked = false
+                }
+              }}
+            />
+            <span>
+              🔔 Push-уведомления (даже при закрытой вкладке)
+              {notifications.settings.pushEnabled && notifications.settings.fcmTokenRegistered && (
+                <span className="notification-settings-collapsible__status">✓ Активны</span>
+              )}
+              {notifications.settings.pushEnabled && !notifications.settings.fcmTokenRegistered && (
+                <span className="notification-settings-collapsible__status notification-settings-collapsible__status--error">⚠ Ошибка регистрации</span>
+              )}
+            </span>
+          </label>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const VideoGeneration: React.FC = () => {
   const [step, setStep] = useState<Step>(1)
   const [channels, setChannels] = useState<Channel[]>([])
@@ -1545,113 +1626,45 @@ const VideoGeneration: React.FC = () => {
             )}
           </div>
 
-          {/* Настройки уведомлений */}
-          <div style={{ 
-            marginTop: '1rem', 
-            padding: '1rem', 
-            background: '#f7fafc', 
-            borderRadius: '8px',
-            border: '1px solid #e2e8f0'
-          }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>🔔</span>
-              <span>Уведомления о готовности видео</span>
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={notifications.settings.soundEnabled}
-                  onChange={(e) => {
-                    notifications.setSoundEnabled(e.target.checked)
-                  }}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <span>🔊 Звуковые уведомления</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={notifications.settings.browserEnabled}
-                  onChange={async (e) => {
-                    if (e.target.checked) {
-                      const granted = await notifications.setBrowserEnabled(true)
-                      if (!granted) {
-                        alert('Разрешение на уведомления не предоставлено. Проверьте настройки браузера.')
-                        e.target.checked = false
-                      }
-                    } else {
-                      notifications.setBrowserEnabled(false)
-                    }
-                  }}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <span>
-                  📱 Браузерные уведомления
-                  {notifications.settings.browserEnabled && notifications.settings.permissionGranted && (
-                    <span style={{ color: '#48bb78', fontSize: '0.875rem', marginLeft: '0.5rem' }}>✓ Включены</span>
-                  )}
-                  {notifications.settings.browserEnabled && !notifications.settings.permissionGranted && (
-                    <span style={{ color: '#f56565', fontSize: '0.875rem', marginLeft: '0.5rem' }}>⚠ Разрешение не предоставлено</span>
-                  )}
-                </span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={notifications.settings.pushEnabled}
-                  onChange={async (e) => {
-                    const success = await notifications.setPushEnabled(e.target.checked)
-                    if (!success && e.target.checked) {
-                      e.target.checked = false
-                    }
-                  }}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <span>
-                  🔔 Push-уведомления (даже при закрытой вкладке)
-                  {notifications.settings.pushEnabled && notifications.settings.fcmTokenRegistered && (
-                    <span style={{ color: '#48bb78', fontSize: '0.875rem', marginLeft: '0.5rem' }}>✓ Активны</span>
-                  )}
-                  {notifications.settings.pushEnabled && !notifications.settings.fcmTokenRegistered && (
-                    <span style={{ color: '#f56565', fontSize: '0.875rem', marginLeft: '0.5rem' }}>⚠ Ошибка регистрации</span>
-                  )}
-                </span>
-              </label>
+          {/* Настройки уведомлений - collapsible */}
+          <NotificationSettingsCollapsible notifications={notifications} />
+
+          <div className="video-generation-actions">
+            <div className="video-generation-actions__buttons">
+              <button
+                className="button"
+                onClick={handleGenerateVideo}
+                disabled={loading || !veoPrompt.trim() || activeJobsCount >= maxActiveJobs}
+              >
+                {loading ? '⏳ Создание задачи...' : '🎬 Сгенерировать видео'}
+              </button>
+              
+              <button
+                className="button button-secondary"
+                onClick={handleRegenerateVideo}
+                disabled={loading || !veoPrompt.trim() || activeJobsCount >= maxActiveJobs}
+                title="Создать новую задачу генерации с тем же промптом"
+              >
+                🔄 Сгенерировать ещё раз
+              </button>
             </div>
+            
+            {activeJobsCount >= maxActiveJobs && (
+              <div className="video-generation-actions__warning">
+                ⚠️ Доступно не более {maxActiveJobs} одновременных генераций. Подождите, пока одна из задач завершится.
+              </div>
+            )}
           </div>
 
-          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Закреплённая кнопка генерации для мобильных */}
+          <div className="mobile-generate-button">
             <button
-              className="button"
+              className="button mobile-generate-button__button"
               onClick={handleGenerateVideo}
               disabled={loading || !veoPrompt.trim() || activeJobsCount >= maxActiveJobs}
             >
               {loading ? '⏳ Создание задачи...' : '🎬 Сгенерировать видео'}
             </button>
-            
-            <button
-              className="button button-secondary"
-              onClick={handleRegenerateVideo}
-              disabled={loading || !veoPrompt.trim() || activeJobsCount >= maxActiveJobs}
-              title="Создать новую задачу генерации с тем же промптом"
-            >
-              🔄 Сгенерировать ещё раз
-            </button>
-            
-            {activeJobsCount >= maxActiveJobs && (
-              <div style={{ 
-                padding: '0.75rem', 
-                background: '#fef2f2', 
-                borderRadius: '8px', 
-                marginTop: '1rem',
-                color: '#ef4444',
-                fontSize: '0.875rem',
-                width: '100%'
-              }}>
-                ⚠️ Доступно не более {maxActiveJobs} одновременных генераций. Подождите, пока одна из задач завершится.
-              </div>
-            )}
           </div>
 
           {/* Список задач */}

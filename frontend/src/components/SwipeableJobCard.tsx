@@ -208,7 +208,7 @@ export const SwipeableJobCard: React.FC<SwipeableJobCardProps> = ({
 
             <div className="job-card__header">
               <div className="job-card__info">
-                <h4>
+                <h4 className="job-card__title">
                   {job.videoTitle || job.prompt.substring(0, 60) + (job.prompt.length > 60 ? '...' : '')}
                 </h4>
                 {job.videoTitle && (
@@ -216,17 +216,28 @@ export const SwipeableJobCard: React.FC<SwipeableJobCardProps> = ({
                     {job.prompt.substring(0, 100) + (job.prompt.length > 100 ? '...' : '')}
                   </p>
                 )}
-                {showChannelName && job.channelName && (
-                  <p style={{ fontSize: '0.875rem', color: '#718096', marginTop: '0.25rem' }}>
-                    Канал: {job.channelName}
-                  </p>
-                )}
+                <div className="job-card__meta">
+                  {showChannelName && job.channelName && (
+                    <span className="job-card__channel">
+                      {job.channelName}
+                    </span>
+                  )}
+                  <span className="job-card__timestamp">
+                    {new Date(job.createdAt).toLocaleString('ru-RU', { 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
                 <div className="job-card__status">
                   <span
                     className="job-card__status-dot"
                     style={{ background: getStatusColor(job.status) }}
                   />
-                  <span style={{ color: getStatusColor(job.status) }}>
+                  <span className="job-card__status-text" style={{ color: getStatusColor(job.status) }}>
                     {getStatusLabel(job.status)}
                   </span>
                   {job.errorMessage && (
@@ -235,9 +246,6 @@ export const SwipeableJobCard: React.FC<SwipeableJobCardProps> = ({
                     </span>
                   )}
                 </div>
-              </div>
-              <div className="job-card__timestamp">
-                {new Date(job.createdAt).toLocaleString('ru-RU')}
               </div>
             </div>
 
