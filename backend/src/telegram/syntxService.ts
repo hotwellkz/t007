@@ -6,6 +6,7 @@ import { getTelegramClient } from "./client";
 export interface SyntxResult {
   localPath: string;
   requestMessageId: number;
+  videoMessageId: number; // ID сообщения с видео от бота
 }
 
 export async function sendPromptToSyntx(
